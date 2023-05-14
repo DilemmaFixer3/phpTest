@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+
+  mysql:
+    image: mysql:8.0.33-debian
+    container_name: '${COMPOSE_PROJECT_NAME}-mysql'
+    user: '${HOST_USER_ID}:${HOST_USER_GROUP_ID}'
+    restart: 'unless-stopped'
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is not specified in .env file}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-ambulette}
+    volumes:
+      - ${MYSQL_DATA_DIRECTORY:?MYSQL_DATA_DIRECTORY is not specified in .env file}:/var/lib/mysql/
+
+  nginx:
+    build:
+      context: ./
+      dockerfile: ./.docker/nginx/Dockerfile
+    container_name: '${COMPOSE_PROJECT_NAME}-nginx'
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./:/var/www/html/
+
+  php:
+    build: './.docker/php/'
+    container_name: '${COMPOSE_PROJECT_NAME}-php'
+    user: '${HOST_USER_ID}:${HOST_USER_GROUP_ID}'
+    restart: 'unless-stopped'
+    environment:
+      PHP_IDE_CONFIG: 'serverName=Docker'
+    volumes:
+      - './:/var/www/html'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
